@@ -138,26 +138,41 @@ struct implication
 
 std::vector<implication> all_implications{
 	implication(
-		expression::make("true"),
-		expression::make("not(false)")
+		expression::make("not(true)"),
+		expression::make("false")
 	), implication(
-		expression::make("not(false)"),
+		expression::make("false"),
+		expression::make("not(true)")
+	), implication(
+		expression::make("not(not(=a))"),
+		expression::make("=a")
+	), implication(
+		expression::make("=a"),
+		expression::make("not(not(=a))")
+	), implication(
+		expression::make("or(true,=a)"),
 		expression::make("true")
 	), implication(
-		expression::make("not(not(=x))"),
-		expression::make("=x")
+		expression::make("true"),
+		expression::make("or(true,false)")
 	), implication(
-		expression::make("=x"),
-		expression::make("not(not(=x))")
+		expression::make("or(=a,=b)"),
+		expression::make("or(=b,=a)")
+	), implication(
+		expression::make("and(=a,=b)"),
+		expression::make("not(or(not(=a),not(=b)))")
+	), implication(
+		expression::make("not(or(not(=a),not(=b)))"),
+		expression::make("and(=a,=b)")
 	)
 };
 
 
 void run()
 {
-    std::vector<expression> current_expressions{expression::make("not(true)")};
+    std::vector<expression> current_expressions{expression::make("not(not(or(true(),not(or(false(),not(not(or(true(),false()))))))))")};
     std::vector<expression> next_expressions;
-	while(current_expressions.size() != 0 && history_of_expressions.size() < 100)
+	while(current_expressions.size() != 0 && history_of_expressions.size() < 10000)
 	{
 		for(auto& impl_it : all_implications)
 		{
