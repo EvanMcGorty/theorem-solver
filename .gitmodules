@@ -1,3 +1,0 @@
-[submodule "expression-evaluator"]
-	path = expression-evaluator
-	url = https://github.com/EvanMcGorty/expression-evaluator.git
