@@ -4,6 +4,7 @@
 #include<map>
 #include<unordered_set>
 #include<functional>
+#include<sstream>
 #include"expression-evaluator/include/expression-evaluator/expression.h"
 
 using namespace expr;
@@ -136,43 +137,62 @@ struct implication
 };
 
 
-std::vector<implication> all_implications{
-	implication(
-		expression::make("not(true)"),
-		expression::make("false")
-	), implication(
-		expression::make("false"),
-		expression::make("not(true)")
-	), implication(
-		expression::make("not(not(=a))"),
-		expression::make("=a")
-	), implication(
-		expression::make("=a"),
-		expression::make("not(not(=a))")
-	), implication(
-		expression::make("or(true,=a)"),
-		expression::make("true")
-	), implication(
-		expression::make("true"),
-		expression::make("or(true,false)")
-	), implication(
-		expression::make("or(=a,=b)"),
-		expression::make("or(=b,=a)")
-	), implication(
-		expression::make("and(=a,=b)"),
-		expression::make("not(or(not(=a),not(=b)))")
-	), implication(
-		expression::make("not(or(not(=a),not(=b)))"),
-		expression::make("and(=a,=b)")
-	)
-};
+std::vector<implication> all_implications
+= []() -> std::vector<implication>
+{
+	std::vector<std::pair<std::string,std::string>> implications = 
+	{
+		{"and(=x,0)","0"},
+		{"and(=x,not(=x))","0"},
+		{"or(=x,1)","1"},
+		{"or(=x,not(=x))","1"}
+	};
+
+	std::vector<std::pair<std::string,std::string>> biconditionals = 
+	{
+		{"1","not(0)"},
+		{"and(=x,1)","=x"},
+		{"and(=x,=x)","=x"},
+		{"or(=x,0)","=x"},
+		{"or(=x,=x)","=x"},
+		{"=x","not(not(=x))"},
+		{"or(=x,and(not(=x),=y)","or(=x,=y)"},
+		{"not(and(=x,=y))","or(not(=x),not(=y))"},
+		{"not(or(=x,=y))","and(not(=x),not(=y))"},
+		{"and(=x,=y)","and(=y,=x)"},
+		{"or(=x,=y)","or(=y,=x)"},
+		{"and(=x,and(=y,=z))","and(and(=x,=y),=z)"},
+		{"or(=x,or(=y,=z))","or(or(=x,=y),=z)"},
+		{"and(=x,or(=y,=z))","or(and(=x,=y),and(=x,=z))"},
+		{"and(or(=x,=y),or(=w,=z))","or(and(=x,=w),or(and(=x,=z),or(and(=y,=w),and(=y,=z))))"}
+	};
+
+	std::vector<implication> ret;
+	for(auto& it : implications)
+	{
+		ret.emplace_back(expression::make(std::move(it.first)),expression::make(std::move(it.second)));
+	}
+	for(auto& it : biconditionals)
+	{
+		ret.emplace_back(expression::make(std::move(it.first)),expression::make(std::move(it.second)));
+		ret.emplace_back(expression::make(std::move(it.second)),expression::make(std::move(it.first)));
+	}
+
+	return ret;
+	
+}();
 
 
 void run()
 {
-    std::vector<expression> current_expressions{expression::make("not(not(or(true(),not(or(false(),not(not(or(true(),false()))))))))")};
+	std::cout << "input:\n{maximum size for print} {maximum size for saving} {substitutions before halt}\n{expression}\n" << std::flush;
+	int substitutions_before_halt;
+	int maximum_size_for_saving;
+	int maximum_size_for_print;
+	std::cin >> maximum_size_for_print >> maximum_size_for_saving >> substitutions_before_halt >> std::ws;
+    std::vector<expression> current_expressions{expression::make([](){std::string ret;std::getline(std::cin,ret);return ret;}())};
     std::vector<expression> next_expressions;
-	while(current_expressions.size() != 0 && history_of_expressions.size() < 10000)
+	while(current_expressions.size() != 0 && history_of_expressions.size() < substitutions_before_halt)
 	{
 		for(auto& impl_it : all_implications)
 		{
@@ -185,8 +205,14 @@ void run()
 						auto l = history_of_expressions.insert(a.str());
 						if(l.second)
 						{
-							std::cout << *l.first << '\n';
-							next_expressions.push_back(std::move(a));
+							if(l.first->size() <= maximum_size_for_print)
+							{
+								std::cout << '\\' << *l.first << "\\\n";
+							}
+							if(l.first->size() <= maximum_size_for_saving)
+							{
+								next_expressions.push_back(std::move(a));
+							}
 						}
 					}
 				})
